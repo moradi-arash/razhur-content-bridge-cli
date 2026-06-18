@@ -1,0 +1,15 @@
+# Never commit real credentials
+.razhur-bridge.env
+
+# Local payloads / generated images
+payload.json
+*.payload.json
+/images/
+*.tmp
+
+# OS / editor cruft
+.DS_Store
+__MACOSX/
+*.swp
+.idea/
+.vscode/
