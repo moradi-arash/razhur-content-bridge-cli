@@ -33,7 +33,6 @@ On the **destination** site:
 1. The `razhur-content-bridge` plugin is installed and **enabled** (Settings → Content Bridge).
 2. An **Application Password** was created (Users → Profile → Application Passwords).
 3. Credentials are stored locally in `.razhur-bridge.env` (see below). **Never** print or commit this file.
-4. Optional internal-link targets can be copied from `internal-link-targets.example.json` to `internal-link-targets.json` and customized per site. The real targets file is intentionally git-ignored.
 
 `.razhur-bridge.env` format:
 ```bash
@@ -54,7 +53,6 @@ RAZHUR_BRIDGE_TOKEN=""                            # only if the admin set an ext
      PYTHONDONTWRITEBYTECODE=1 python3 scripts/content_index.py suggest --topic "article topic" --keyword "focus keyword"
      ```
    - Use `internal-link-targets.json` for important landing pages and `content-index.json` for previously generated posts.
-   - If `internal-link-targets.json` is missing, copy `internal-link-targets.example.json` and replace the sample URLs/anchors with the site's real landing pages.
    - Add links naturally inside the body; do not force unrelated anchors.
 3. **Create the featured image** (e.g. via Codex) and save it locally, e.g. `./image.webp`.
 4. **Base64-encode the image and embed it** in the payload (the publish script does this for you — just pass the image path).
@@ -62,6 +60,7 @@ RAZHUR_BRIDGE_TOKEN=""                            # only if the admin set an ext
 6. **Publish** with the script in section 5.
 7. **Report** the returned `edit_link` to the user so they can review the draft.
 8. **Keep the local archive**: the publish script automatically records successful posts in `content-index.json` and saves sanitized copies under `content/posts/`.
+9. **For existing posts, update instead of republishing**: if the user gives an existing post ID or asks to fix SEO/content on an existing draft, use `./razhur-publish.sh --update POST_ID payload.json [image.webp]` so no duplicate draft is created.
 
 ---
 
@@ -140,6 +139,15 @@ Only `title` and `content` are required. Everything else is optional.
   - `content/posts/YYYY-MM-DD-slug.json` for machine-readable history.
   - `content/posts/YYYY-MM-DD-slug.md` for human review.
 
+**Update an existing post** (partial update, safe for SEO-only fixes):
+```bash
+./razhur-publish.sh --update 123 payload.json
+```
+
+- Use this when a draft already exists and the user asks to fix SEO title, meta description, content, categories, tags, slug, status, or featured image.
+- The update endpoint only changes fields included in the payload. If the payload contains only `seo`, the post body/title are left untouched.
+- Passing an image path with `--update` replaces/sets the featured image and lets the SEO plugin use that image for social meta.
+
 **Verify connectivity first** (optional, recommended before the first publish of a session):
 ```bash
 ./razhur-publish.sh --status
@@ -167,17 +175,12 @@ Important landing pages live in:
 ```bash
 internal-link-targets.json
 ```
-This file is site-specific and git-ignored. Create it from:
-```bash
-cp internal-link-targets.example.json internal-link-targets.json
-```
 
 Previously generated articles live in:
 ```bash
 content-index.json
 content/posts/
 ```
-These files are local archives and are git-ignored by default.
 
 Suggest targets for a new topic:
 ```bash

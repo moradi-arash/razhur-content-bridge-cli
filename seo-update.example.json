@@ -1,0 +1,20 @@
+{
+  "seo": {
+    "title": "SEO Title for Existing Draft",
+    "description": "Meta description for an existing draft. Title and content are not changed when only seo is sent.",
+    "focus_keyword": "main keyword",
+    "canonical": "",
+    "social": {
+      "facebook": {
+        "title": "Open Graph title",
+        "description": "Open Graph description.",
+        "image": ""
+      },
+      "twitter": {
+        "title": "Twitter title",
+        "description": "Twitter description.",
+        "image": ""
+      }
+    }
+  }
+}

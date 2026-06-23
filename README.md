@@ -93,6 +93,18 @@ On the destination site: **Users → Profile → Application Passwords** → ent
 - On success it prints the response JSON and the `edit_link` to review the draft.
 - On success it records a sanitized local archive in `content-index.json` and `content/posts/` so future articles can link back to previous content.
 
+**Update an existing post** (partial update, useful for SEO-only fixes):
+
+```bash
+./razhur-publish.sh --update 123 payload.json
+```
+
+Use this when the destination post already exists. The bridge only changes fields included in the payload, so a payload with only `seo` updates Rank Math/Yoast metadata without touching the title or body. Passing an image path also sets/replaces the featured image:
+
+```bash
+./razhur-publish.sh --update 123 payload.json ./image.webp
+```
+
 ---
 
 ## `payload.json` reference
@@ -156,6 +168,8 @@ Only `title` and `content` are required.
 
 Supported image types: `jpeg`, `png`, `webp`, `gif`.
 
+For SEO-only updates, see [`seo-update.example.json`](seo-update.example.json).
+
 ---
 
 ## Using it with an AI agent
@@ -190,6 +204,7 @@ Both are local/site-specific and git-ignored. `content-index.json` is updated au
 ```json
 {
   "success": true,
+  "action": "update",
   "post_id": 123,
   "status": "draft",
   "edit_link": "https://your-site.com/wp-admin/post.php?post=123&action=edit",

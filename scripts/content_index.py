@@ -217,7 +217,8 @@ def upsert_index(entry: dict[str, Any]) -> None:
     for idx, item in enumerate(index):
         item_key = str(item.get("post_id") or item.get("slug") or item.get("title"))
         if item_key == key:
-            index[idx] = {**item, **entry}
+            merged = {**item, **{field: value for field, value in entry.items() if value not in ("", [], None)}}
+            index[idx] = merged
             updated = True
             break
     if not updated:

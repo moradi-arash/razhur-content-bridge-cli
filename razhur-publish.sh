@@ -7,6 +7,7 @@
 #
 # Usage:
 #   ./razhur-publish.sh payload.json [image-path]   # publish an article
+#   ./razhur-publish.sh --update POST_ID payload.json [image-path]
 #   ./razhur-publish.sh --status                    # test connectivity & auth
 #
 # Config is read from .razhur-bridge.env in the same directory:
@@ -48,8 +49,26 @@ if [[ "${1:-}" == "--status" ]]; then
   exit 0
 fi
 
-PAYLOAD="${1:?Usage: razhur-publish.sh payload.json [image-path]}"
-IMAGE="${2:-}"
+MODE="publish"
+ENDPOINT="${BASE}/publish"
+POST_ID=""
+
+if [[ "${1:-}" == "--update" ]]; then
+  MODE="update"
+  POST_ID="${2:?Usage: razhur-publish.sh --update POST_ID payload.json [image-path]}"
+  PAYLOAD="${3:?Usage: razhur-publish.sh --update POST_ID payload.json [image-path]}"
+  IMAGE="${4:-}"
+
+  if ! [[ "${POST_ID}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: POST_ID must be numeric." >&2
+    exit 1
+  fi
+
+  ENDPOINT="${BASE}/update/${POST_ID}"
+else
+  PAYLOAD="${1:?Usage: razhur-publish.sh payload.json [image-path]}"
+  IMAGE="${2:-}"
+fi
 
 if [[ ! -f "${PAYLOAD}" ]]; then
   echo "ERROR: payload file not found: ${PAYLOAD}" >&2
@@ -130,9 +149,10 @@ fi
 
 # Send the request.
 RESPONSE="$(curl -sS "${auth_args[@]}" \
+  -X POST \
   -H "Content-Type: application/json" \
   --data-binary @"${BODY_FILE}" \
-  "${BASE}/publish")"
+  "${ENDPOINT}")"
 
 # Clean up any temp file.
 [[ -n "${IMAGE}" ]] && rm -f "${BODY_FILE}"
@@ -152,7 +172,11 @@ if command -v python3 >/dev/null 2>&1; then
 try:
     r=json.load(sys.stdin)
     if r.get("success"):
-        print("\nDraft created. Review at:", r.get("edit_link",""))
+        action = r.get("action") or ("updated" if "'"${MODE}"'" == "update" else "created")
+        if action == "update":
+            print("\nDraft updated. Review at:", r.get("edit_link",""))
+        else:
+            print("\nDraft created. Review at:", r.get("edit_link",""))
         if r.get("image_error"): print("Image warning:", r["image_error"])
         seo=r.get("seo_meta") or {}
         if seo:
