@@ -7,6 +7,11 @@ payload.json
 /images/
 *.tmp
 
+# Local content archives / site-specific link targets
+content-index.json
+internal-link-targets.json
+/content/
+
 # OS / editor cruft
 .DS_Store
 __MACOSX/

@@ -56,6 +56,51 @@ if [[ ! -f "${PAYLOAD}" ]]; then
   exit 1
 fi
 
+if command -v python3 >/dev/null 2>&1; then
+  PAYLOAD="${PAYLOAD}" python3 - <<'PY' >&2
+import json, os, sys
+
+path = os.environ["PAYLOAD"]
+try:
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+except Exception as exc:
+    print(f"ERROR: payload JSON is invalid: {exc}")
+    sys.exit(1)
+
+seo = data.get("seo")
+if not isinstance(seo, dict):
+    print("SEO warning: payload has no seo object.")
+    sys.exit(0)
+
+title = str(seo.get("title") or seo.get("seo_title") or "")
+description = str(seo.get("description") or seo.get("meta_description") or seo.get("desc") or "")
+keyword = str(seo.get("focus_keyword") or seo.get("focusKeyword") or seo.get("keyword") or "")
+
+if not title:
+    print("SEO warning: seo.title is empty.")
+elif len(title) > 65:
+    print(f"SEO warning: seo.title is {len(title)} characters; target is about 55-60.")
+
+if not description:
+    print("SEO warning: seo.description is empty.")
+elif len(description) > 165:
+    print(f"SEO warning: seo.description is {len(description)} characters; target is about 140-155.")
+
+if not keyword:
+    print("SEO warning: seo.focus_keyword is empty.")
+
+social = seo.get("social") if isinstance(seo.get("social"), dict) else {}
+facebook = social.get("facebook") if isinstance(social.get("facebook"), dict) else seo.get("facebook")
+twitter = social.get("twitter") if isinstance(social.get("twitter"), dict) else seo.get("twitter")
+
+if not isinstance(facebook, dict):
+    print("SEO notice: no Facebook/Open Graph social fields provided; the SEO plugin may fall back to the main SEO fields.")
+if not isinstance(twitter, dict):
+    print("SEO notice: no Twitter social fields provided; the SEO plugin may fall back to the main SEO fields.")
+PY
+fi
+
 BODY_FILE="${PAYLOAD}"
 
 # If an image path is given, inject its base64 into featured_image.data.
@@ -94,6 +139,13 @@ RESPONSE="$(curl -sS "${auth_args[@]}" \
 
 echo "${RESPONSE}"
 
+if command -v python3 >/dev/null 2>&1; then
+  python3 "${SCRIPT_DIR}/scripts/content_index.py" record \
+    --payload "${PAYLOAD}" \
+    --response-json "${RESPONSE}" \
+    --base-url "${RAZHUR_BRIDGE_URL}" || true
+fi
+
 # Surface the edit link if jq or python3 is available; otherwise raw JSON is enough.
 if command -v python3 >/dev/null 2>&1; then
   echo "${RESPONSE}" | python3 -c 'import json,sys
@@ -102,6 +154,14 @@ try:
     if r.get("success"):
         print("\nDraft created. Review at:", r.get("edit_link",""))
         if r.get("image_error"): print("Image warning:", r["image_error"])
+        seo=r.get("seo_meta") or {}
+        if seo:
+            print("SEO plugin:", seo.get("plugin", r.get("seo_plugin","")))
+            written=seo.get("written") or []
+            if written: print("SEO fields written:", ", ".join(written))
+            warnings=seo.get("warnings") or []
+            for warning in warnings:
+                print("SEO warning:", warning)
     else:
         print("\nFailed:", r.get("message", r))
 except Exception:

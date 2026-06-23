@@ -19,7 +19,8 @@ It is designed to be driven either by a human or by an **AI coding agent** (Clau
 - **Push-only** — the destination never connects back to your machine.
 - **Image travels inside the request** as base64; nothing is fetched from localhost.
 - **Draft by default** — a human reviews before anything goes public.
-- **SEO-aware** — the plugin auto-detects **Rank Math** or **Yoast** and writes the right meta.
+- **SEO-aware** — the plugin auto-detects **Rank Math** or **Yoast** and writes the right meta, including social/Open Graph fields when supported.
+- **Internal-link aware** — optional local helpers keep a content index and suggest landing-page/post targets for future articles.
 
 ---
 
@@ -58,6 +59,14 @@ RAZHUR_BRIDGE_TOKEN=""                             # only if the admin set an ex
 
 > **`.razhur-bridge.env` is git-ignored.** Never commit it or print its contents.
 
+Optional, for internal linking:
+
+```bash
+cp internal-link-targets.example.json internal-link-targets.json
+```
+
+Edit `internal-link-targets.json` with your important landing pages, menu pages and preferred anchor keywords. This file is site-specific and git-ignored.
+
 ### Where do I get the Application Password?
 
 On the destination site: **Users → Profile → Application Passwords** → enter a name (e.g. `content-bridge`) → **Add New Application Password** → copy it immediately (shown once). Requires HTTPS.
@@ -82,6 +91,7 @@ On the destination site: **Users → Profile → Application Passwords** → ent
 - The 2nd argument is the image path; the script base64-encodes it and injects it into `featured_image.data` for you.
 - Omit it if you used `featured_image_url` or no image.
 - On success it prints the response JSON and the `edit_link` to review the draft.
+- On success it records a sanitized local archive in `content-index.json` and `content/posts/` so future articles can link back to previous content.
 
 ---
 
@@ -104,6 +114,12 @@ Only `title` and `content` are required.
 | `seo.description` | string | Meta description (≤155 chars). |
 | `seo.focus_keyword` | string | Primary keyword. |
 | `seo.canonical` | string | Canonical URL (usually empty). |
+| `seo.social.facebook.title` | string | Facebook/Open Graph title. |
+| `seo.social.facebook.description` | string | Facebook/Open Graph description. |
+| `seo.social.facebook.image` | string | Public Open Graph image URL. If omitted, the plugin can use the uploaded featured image. |
+| `seo.social.twitter.title` | string | Twitter/X title. |
+| `seo.social.twitter.description` | string | Twitter/X description. |
+| `seo.social.twitter.image` | string | Public Twitter/X image URL. If omitted, the plugin can use the uploaded featured image. |
 
 **Template:**
 
@@ -117,7 +133,24 @@ Only `title` and `content` are required.
   "categories": ["Guides"],
   "tags": ["shoes", "running"],
   "featured_image": { "filename": "shoes.webp", "mime": "image/webp", "alt": "Running shoes", "data": "" },
-  "seo": { "title": "How to Choose Running Shoes (2026)", "description": "A practical guide.", "focus_keyword": "running shoes", "canonical": "" }
+  "seo": {
+    "title": "How to Choose Running Shoes (2026)",
+    "description": "A practical guide.",
+    "focus_keyword": "running shoes",
+    "canonical": "",
+    "social": {
+      "facebook": {
+        "title": "How to Choose Running Shoes",
+        "description": "A practical guide to choosing comfortable running shoes.",
+        "image": ""
+      },
+      "twitter": {
+        "title": "How to Choose Running Shoes",
+        "description": "A practical guide to choosing comfortable running shoes.",
+        "image": ""
+      }
+    }
+  }
 }
 ```
 
@@ -133,6 +166,23 @@ Supported image types: `jpeg`, `png`, `webp`, `gif`.
 
 The agent will produce the HTML, do internal SEO, build `payload.json`, embed the image and call the script — reporting back the draft's edit link.
 
+### Internal-link suggestions
+
+Before writing a new article, ask the agent to use the helper:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/content_index.py suggest \
+  --topic "article topic" \
+  --keyword "focus keyword"
+```
+
+The helper reads:
+
+- `internal-link-targets.json` for important landing pages and menu pages.
+- `content-index.json` for previously generated posts.
+
+Both are local/site-specific and git-ignored. `content-index.json` is updated automatically after successful publishes.
+
 ---
 
 ## Response
@@ -145,6 +195,12 @@ The agent will produce the HTML, do internal SEO, build `payload.json`, embed th
   "edit_link": "https://your-site.com/wp-admin/post.php?post=123&action=edit",
   "preview_link": "https://your-site.com/?p=123&preview=true",
   "seo_plugin": "rank_math",
+  "seo_meta": {
+    "plugin": "rank_math",
+    "written": ["title", "description", "focus_keyword"],
+    "skipped": [],
+    "warnings": []
+  },
   "featured_image_id": 124,
   "image_error": null
 }

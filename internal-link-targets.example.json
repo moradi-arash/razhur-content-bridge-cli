@@ -1,0 +1,18 @@
+[
+  {
+    "type": "page",
+    "title": "Main Service Landing Page",
+    "url": "https://example.com/service/",
+    "anchor_keywords": ["service keyword", "consultation keyword", "primary landing anchor"],
+    "priority": 10,
+    "notes": "Use for high-intent articles related to this service."
+  },
+  {
+    "type": "page",
+    "title": "Contact Page",
+    "url": "https://example.com/contact/",
+    "anchor_keywords": ["book a consultation", "contact us", "request advice"],
+    "priority": 8,
+    "notes": "Use near CTA sections when the article intent is service-oriented."
+  }
+]
